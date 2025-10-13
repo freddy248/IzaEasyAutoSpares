@@ -1,14 +1,15 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AutoSpares Pro — Sales & Inventory</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0ea5e9">
-  <script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>AutoSpares Pro — Sales &amp; Inventory</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="manifest.json" rel="manifest"/>
+<meta content="#0ea5e9" name="theme-color"/>
+<script>
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -16,7 +17,7 @@
       });
     }
   </script>
-  <style>
+<style>
     :root { --brand:#0ea5e9; }
     .brand { color: var(--brand); }
     .brand-bg { background: var(--brand); }
@@ -36,340 +37,326 @@
       .print-area { padding: 0 !important; box-shadow: none !important; }
       body { background: white; }
     }
-  </style>
+  
+/* autosuggest */
+.suggest-item{padding:.5rem .75rem;cursor:pointer}
+.suggest-item:hover{background:#f1f5f9}
+</style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
-  <!-- Install banner (optional) -->
-  <div id="installBanner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-xl px-4 py-2 flex items-center gap-3 z-50">
-    <span>Install AutoSpares Pro?</span>
-    <button id="btnInstall" class="px-3 py-1 rounded-lg text-white" style="background:#0ea5e9">Install</button>
-    <button id="btnDismiss" class="px-3 py-1 rounded-lg border">Dismiss</button>
-  </div>
-
-  <!-- Top Bar -->
-  <header class="no-print sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl brand-bg grid place-items-center text-white font-bold">AS</div>
-        <div>
-          <h1 class="text-lg font-semibold">AutoSpares <span class="brand">Pro</span></h1>
-          <p class="text-xs text-slate-500">Sales & Inventory Management</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2" id="topUserBar">
-        <span class="pill" id="activeRole">Role: Guest</span>
-        <button class="btn" id="btnBackup">Backup</button>
-        <button class="btn" id="btnRestore">Restore</button>
-        <label class="btn cursor-pointer">
-          Import <input type="file" id="importFile" class="hidden" accept="application/json" />
-        </label>
-        <button class="btn" id="btnLogout">Logout</button>
-      </div>
-    </div>
-  </header>
-
-  <!-- App Container -->
-  <main class="max-w-7xl mx-auto p-4 grid md:grid-cols-12 gap-4">
-    <!-- Sidebar Navigation -->
-    <aside class="no-print md:col-span-3 lg:col-span-2">
-      <nav class="bg-white rounded-2xl shadow-md p-4 space-y-2" id="nav">
-        <button data-page="dashboard" class="w-full border rounded-xl px-4 py-2" id="navDashboard">📊 Dashboard</button>
-        <button data-page="pos" class="w-full border rounded-xl px-4 py-2" id="navPOS">🧾 Point of Sale</button>
-        <button data-page="inventory" class="w-full border rounded-xl px-4 py-2" id="navInventory">📦 Inventory</button>
-        <button data-page="purchases" class="w-full border rounded-xl px-4 py-2" id="navPurchases">📥 Purchases/GRN</button>
-        <button data-page="sales" class="w-full border rounded-xl px-4 py-2" id="navSales">📚 Sales Records</button>
-        <button data-page="suppliers" class="w-full border rounded-xl px-4 py-2" id="navSuppliers">🏭 Suppliers</button>
-        <button data-page="settings" class="w-full border rounded-xl px-4 py-2" id="navSettings">⚙️ Settings</button>
-      </nav>
-
-      <!-- Quick KPIs -->
-      <div class="bg-white rounded-2xl shadow-md p-4 mt-4 space-y-3" id="quickKpis">
-        <div class="flex items-center justify-between"><span class="text-slate-500">Items</span><b id="kpiItems">0</b></div>
-        <div class="flex items-center justify-between"><span class="text-slate-500">On‑hand Stock</span><b id="kpiStock">0</b></div>
-        <div class="flex items-center justify-between"><span class="text-slate-500">Today Sales (K)</span><b id="kpiToday">0.00</b></div>
-        <div class="flex items-center justify-between"><span class="text-slate-500">Low Stock</span><b id="kpiLow">0</b></div>
-      </div>
-    </aside>
-
-    <!-- Page Content -->
-    <section class="md:col-span-9 lg:col-span-10 space-y-4" id="pages">
-
-      <!-- Login Page -->
-      <div id="page-login" class="bg-white rounded-2xl shadow-md p-4 max-w-lg mx-auto">
-        <h2 class="text-xl font-semibold mb-2">Login</h2>
-        <p class="text-sm text-slate-500 mb-4">Demo users: <b>admin/admin123</b>, <b>manager/manager123</b>, <b>cashier/cashier123</b></p>
-        <div class="grid md:grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Username</label>
-            <input id="loginUser" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="e.g. admin" />
-          </div>
-          <div>
-            <label class="text-sm">Password</label>
-            <input id="loginPass" type="password" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="••••••" />
-          </div>
-        </div>
-        <div class="flex items-center gap-2 mt-4">
-          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="btnLogin">Login</button>
-          <button class="border rounded-xl px-4 py-2" id="btnFillDemo">Fill demo</button>
-        </div>
-      </div>
-
-      <!-- Dashboard -->
-      <div id="page-dashboard" class="hidden">
-        <div class="grid lg:grid-cols-3 gap-4">
-          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Today Summary</h3>
-            <div class="grid grid-cols-2 gap-3 text-sm">
-              <div class="p-3 rounded-xl bg-slate-50">
-                <div class="text-slate-500">Invoices</div>
-                <div class="text-xl font-bold" id="dashInvoices">0</div>
-              </div>
-              <div class="p-3 rounded-xl bg-slate-50">
-                <div class="text-slate-500">Sales (K)</div>
-                <div class="text-xl font-bold" id="dashSales">0.00</div>
-              </div>
-              <div class="p-3 rounded-xl bg-slate-50">
-                <div class="text-slate-500">Avg. Basket (K)</div>
-                <div class="text-xl font-bold" id="dashAvg">0.00</div>
-              </div>
-              <div class="p-3 rounded-xl bg-slate-50">
-                <div class="text-slate-500">Items Sold</div>
-                <div class="text-xl font-bold" id="dashUnits">0</div>
-              </div>
-            </div>
-          </div>
-          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Top Selling</h3>
-            <ul id="topSelling" class="space-y-2 text-sm"></ul>
-          </div>
-          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Low Stock</h3>
-            <ul id="lowStock" class="space-y-2 text-sm"></ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- POS Page -->
-      <div id="page-pos" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <div class="flex flex-col md:flex-row md:items-end gap-3">
-          <div class="flex-1">
-            <label class="text-sm">Search Item</label>
-            <input id="posSearch" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Type part name, SKU or vehicle" />
-          </div>
-          <div>
-            <label class="text-sm">Add by SKU</label>
-            <input id="posSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="e.g. BRK-001" />
-          </div>
-          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="posAdd">Add</button>
-        </div>
-
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-sm" id="posTable">
-            <thead><tr>
-              <th>SKU</th><th>Item</th><th>Price (K)</th><th>Qty</th><th>Line Total</th><th class="no-print">Remove</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <div class="grid md:grid-cols-4 gap-3 mt-4">
-          <div class="bg-white rounded-2xl shadow p-4 border">
-            <label class="text-sm">Discount (K)</label>
-            <input id="posDiscount" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" min="0" />
-            <label class="text-sm mt-2">VAT %</label>
-            <input id="posVat" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="16" min="0" />
-          </div>
-          <div class="bg-white rounded-2xl shadow p-4 border md:col-span-2">
-            <div class="flex items-center justify-between text-sm"><span>Subtotal</span><b id="posSubtotal">0.00</b></div>
-            <div class="flex items-center justify-between text-sm"><span>Discount</span><b id="posDiscountAmt">0.00</b></div>
-            <div class="flex items-center justify-between text-sm"><span>VAT</span><b id="posVatAmt">0.00</b></div>
-            <div class="flex items-center justify-between text-lg mt-2"><span>Total</span><b id="posTotal">0.00</b></div>
-          </div>
-          <div class="flex flex-col gap-2">
-            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="posCheckout">Checkout</button>
-            <button class="border rounded-xl px-4 py-2" id="posClear">Clear</button>
-          </div>
-        </div>
-
-        <!-- Printable Receipt -->
-        <div id="receipt" class="mt-4 bg-white rounded-2xl shadow-md p-4 print-area hidden">
-          <div class="text-center">
-            <h2 class="font-semibold">AutoSpares Pro</h2>
-            <div class="text-xs text-slate-500" id="rcptAddress">Plot 123, Main Road, Lusaka</div>
-          </div>
-          <div class="text-xs mt-2 flex items-center justify-between">
-            <div>Invoice: <span id="rcptInv"></span></div>
-            <div>Date: <span id="rcptDate"></span></div>
-          </div>
-          <table class="w-full text-sm mt-2">
-            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-            <tbody id="rcptBody"></tbody>
-          </table>
-          <div class="text-sm mt-2 flex flex-col items-end gap-1">
-            <div>Subtotal: <b id="rcptSub"></b></div>
-            <div>Discount: <b id="rcptDis"></b></div>
-            <div>VAT: <b id="rcptVat"></b></div>
-            <div class="text-lg">Total: <b id="rcptTot"></b></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Inventory Page -->
-      <div id="page-inventory" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <div class="flex flex-col md:flex-row md:items-end gap-3">
-          <div class="flex-1">
-            <label class="text-sm">Search</label>
-            <input id="invSearch" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Part, SKU, Make/Model" />
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="invAdd">+ New Item</button>
-            <button class="border rounded-xl px-4 py-2" id="invExport">Export</button>
-          </div>
-        </div>
-        <div class="overflow-x-auto mt-3">
-          <table class="w-full text-sm" id="invTable">
-            <thead><tr><th>SKU</th><th>Item</th><th>Make/Model</th><th>Buy (K)</th><th>Sell (K)</th><th>Stock</th><th>Reorder</th><th>Bin</th><th class="no-print">Actions</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Purchases Page -->
-      <div id="page-purchases" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <div class="grid md:grid-cols-4 gap-3">
-          <div class="md:col-span-2">
-            <label class="text-sm">Supplier</label>
-            <select id="grnSupplier" class="w-full rounded-xl border border-slate-300 px-3 py-2"></select>
-          </div>
-          <div>
-            <label class="text-sm">SKU</label>
-            <input id="grnSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Existing item SKU" />
-          </div>
-          <div>
-            <label class="text-sm">Qty</label>
-            <input id="grnQty" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="1" min="1" />
-          </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="grnAdd">Receive Stock</button>
-          <button class="border rounded-xl px-4 py-2" id="grnClear">Clear</button>
-        </div>
-        <div class="mt-4">
-          <h3 class="font-semibold mb-2">Recent GRNs</h3>
-          <ul id="grnList" class="text-sm space-y-1"></ul>
-        </div>
-      </div>
-
-      <!-- Sales Records -->
-      <div id="page-sales" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <div class="grid md:grid-cols-4 gap-3 mb-3">
-          <div>
-            <label class="text-sm">From</label>
-            <input id="salesFrom" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
-          </div>
-          <div>
-            <label class="text-sm">To</label>
-            <input id="salesTo" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
-          </div>
-          <div class="md:col-span-2 flex items-end gap-2">
-            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="salesFilter">Filter</button>
-            <button class="border rounded-xl px-4 py-2" id="salesPrint">Print Daily Summary</button>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm" id="salesTable">
-            <thead><tr><th>Date</th><th>Invoice</th><th>Items</th><th>Total (K)</th><th>Cashier</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Suppliers Page -->
-      <div id="page-suppliers" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <div class="grid md:grid-cols-3 gap-3">
-          <div>
-            <label class="text-sm">Name</label>
-            <input id="supName" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
-          </div>
-          <div>
-            <label class="text-sm">Phone</label>
-            <input id="supPhone" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
-          </div>
-          <div>
-            <label class="text-sm">Email</label>
-            <input id="supEmail" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
-          </div>
-        </div>
-        <div class="flex gap-2 mt-3">
-          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="supAdd">Add Supplier</button>
-          <button class="border rounded-xl px-4 py-2" id="supClear">Clear</button>
-        </div>
-        <div class="mt-3">
-          <table class="w-full text-sm" id="supTable">
-            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th class="no-print">Actions</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Settings Page -->
-      <div id="page-settings" class="hidden bg-white rounded-2xl shadow-md p-4">
-        <h3 class="font-semibold mb-2">Business Settings</h3>
-        <div class="grid md:grid-cols-3 gap-3">
-          <div>
-            <label class="text-sm">Business Name</label>
-            <input id="setName" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="AutoSpares Pro" />
-          </div>
-          <div>
-            <label class="text-sm">Address</label>
-            <input id="setAddress" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Plot 123, Main Road, Lusaka" />
-          </div>
-          <div>
-            <label class="text-sm">Currency Symbol</label>
-            <input id="setCur" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="K" />
-          </div>
-        </div>
-        <h3 class="font-semibold mt-4 mb-2">Users</h3>
-        <div class="grid md:grid-cols-4 gap-3">
-          <input id="uName" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="username" />
-          <input id="uPass" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="password" />
-          <select id="uRole" class="w-full rounded-xl border border-slate-300 px-3 py-2">
-            <option>Admin</option>
-            <option>Manager</option>
-            <option>Cashier</option>
-          </select>
-          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="uAdd">+ Add User</button>
-        </div>
-        <div class="mt-3 overflow-x-auto">
-          <table class="w-full text-sm" id="uTable"><thead><tr><th>User</th><th>Role</th><th class="no-print">Actions</th></tr></thead><tbody></tbody></table>
-        </div>
-      </div>
-
-    </section>
-  </main>
-
-  <!-- Modals -->
-  <dialog id="itemModal" class="rounded-2xl p-0 w-full max-w-2xl">
-    <form method="dialog" class="p-4">
-      <h3 class="font-semibold text-lg mb-2" id="itemModalTitle">New Item</h3>
-      <div class="grid md:grid-cols-3 gap-3">
-        <div><label class="text-sm">SKU</label><input id="mSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" required /></div>
-        <div class="md:col-span-2"><label class="text-sm">Item Name</label><input id="mName" class="w-full rounded-xl border border-slate-300 px-3 py-2" required /></div>
-        <div><label class="text-sm">Vehicle Make</label><input id="mMake" class="w-full rounded-xl border border-slate-300 px-3 py-2" /></div>
-        <div><label class="text-sm">Vehicle Model</label><input id="mModel" class="w-full rounded-xl border border-slate-300 px-3 py-2" /></div>
-        <div><label class="text-sm">Category</label><input id="mCat" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Brakes, Filters, ..." /></div>
-        <div><label class="text-sm">Buy Price (K)</label><input id="mBuy" type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
-        <div><label class="text-sm">Sell Price (K)</label><input id="mSell" type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
-        <div><label class="text-sm">Stock</label><input id="mStock" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
-        <div><label class="text-sm">Reorder Level</label><input id="mReorder" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="5" /></div>
-        <div><label class="text-sm">Bin/Location</label><input id="mBin" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Aisle 1 / Bin 3" /></div>
-        <div class="md:col-span-3"><label class="text-sm">Notes</label><textarea id="mNotes" class="w-full rounded-xl border border-slate-300 px-3 py-2"></textarea></div>
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button class="border rounded-xl px-4 py-2" value="cancel">Cancel</button>
-        <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="mSave" value="default">Save</button>
-      </div>
-    </form>
-  </dialog>
-
-  <script>
+<!-- Install banner (optional) -->
+<div class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-xl px-4 py-2 flex items-center gap-3 z-50" id="installBanner">
+<span>Install AutoSpares Pro?</span>
+<button class="px-3 py-1 rounded-lg text-white" id="btnInstall" style="background:#0ea5e9">Install</button>
+<button class="px-3 py-1 rounded-lg border" id="btnDismiss">Dismiss</button>
+</div>
+<!-- Top Bar -->
+<header class="no-print sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+<div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl brand-bg grid place-items-center text-white font-bold">AS</div>
+<div>
+<h1 class="text-lg font-semibold">AutoSpares <span class="brand">Pro</span></h1>
+<p class="text-xs text-slate-500">Sales &amp; Inventory Management</p>
+</div>
+</div>
+<div class="flex items-center gap-2" id="topUserBar">
+<span class="pill" id="activeRole">Role: Guest</span>
+<button class="btn" id="btnBackup">Backup</button>
+<button class="btn" id="btnRestore">Restore</button>
+<label class="btn cursor-pointer">
+          Import <input accept="application/json" class="hidden" id="importFile" type="file"/>
+</label>
+<button class="btn" id="btnLogout">Logout</button>
+</div>
+</div>
+</header>
+<!-- App Container -->
+<main class="max-w-7xl mx-auto p-4 grid md:grid-cols-12 gap-4">
+<!-- Sidebar Navigation -->
+<aside class="no-print md:col-span-3 lg:col-span-2">
+<nav class="bg-white rounded-2xl shadow-md p-4 space-y-2" id="nav">
+<button class="w-full border rounded-xl px-4 py-2" data-page="dashboard" id="navDashboard">📊 Dashboard</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="pos" id="navPOS">🧾 Point of Sale</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="inventory" id="navInventory">📦 Inventory</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="purchases" id="navPurchases">📥 Purchases/GRN</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="sales" id="navSales">📚 Sales Records</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="suppliers" id="navSuppliers">🏭 Suppliers</button>
+<button class="w-full border rounded-xl px-4 py-2" data-page="settings" id="navSettings">⚙️ Settings</button>
+</nav>
+<!-- Quick KPIs -->
+<div class="bg-white rounded-2xl shadow-md p-4 mt-4 space-y-3" id="quickKpis">
+<div class="flex items-center justify-between"><span class="text-slate-500">Items</span><b id="kpiItems">0</b></div>
+<div class="flex items-center justify-between"><span class="text-slate-500">On‑hand Stock</span><b id="kpiStock">0</b></div>
+<div class="flex items-center justify-between"><span class="text-slate-500">Today Sales (K)</span><b id="kpiToday">0.00</b></div>
+<div class="flex items-center justify-between"><span class="text-slate-500">Low Stock</span><b id="kpiLow">0</b></div>
+</div>
+</aside>
+<!-- Page Content -->
+<section class="md:col-span-9 lg:col-span-10 space-y-4" id="pages">
+<!-- Login Page -->
+<div class="bg-white rounded-2xl shadow-md p-4 max-w-lg mx-auto" id="page-login">
+<h2 class="text-xl font-semibold mb-2">Login</h2>
+<p class="text-sm text-slate-500 mb-4">Demo users: <b>admin/admin123</b>, <b>manager/manager123</b>, <b>cashier/cashier123</b></p>
+<div class="grid md:grid-cols-2 gap-3">
+<div>
+<label class="text-sm">Username</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="loginUser" placeholder="e.g. admin"/>
+</div>
+<div>
+<label class="text-sm">Password</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="loginPass" placeholder="••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-4">
+<button class="px-4 py-2 rounded-xl text-white" id="btnLogin" style="background:#0ea5e9">Login</button>
+<button class="border rounded-xl px-4 py-2" id="btnFillDemo">Fill demo</button>
+</div>
+</div>
+<!-- Dashboard -->
+<div class="hidden" id="page-dashboard">
+<div class="grid lg:grid-cols-3 gap-4">
+<div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Today Summary</h3>
+<div class="grid grid-cols-2 gap-3 text-sm">
+<div class="p-3 rounded-xl bg-slate-50">
+<div class="text-slate-500">Invoices</div>
+<div class="text-xl font-bold" id="dashInvoices">0</div>
+</div>
+<div class="p-3 rounded-xl bg-slate-50">
+<div class="text-slate-500">Sales (K)</div>
+<div class="text-xl font-bold" id="dashSales">0.00</div>
+</div>
+<div class="p-3 rounded-xl bg-slate-50">
+<div class="text-slate-500">Avg. Basket (K)</div>
+<div class="text-xl font-bold" id="dashAvg">0.00</div>
+</div>
+<div class="p-3 rounded-xl bg-slate-50">
+<div class="text-slate-500">Items Sold</div>
+<div class="text-xl font-bold" id="dashUnits">0</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Top Selling</h3>
+<ul class="space-y-2 text-sm" id="topSelling"></ul>
+</div>
+<div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Low Stock</h3>
+<ul class="space-y-2 text-sm" id="lowStock"></ul>
+</div>
+</div>
+</div>
+<!-- POS Page -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-pos">
+<div class="flex flex-col md:flex-row md:items-end gap-3">
+<div class="flex-1 relative">
+<label class="text-sm">Search Item</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posSearch" placeholder="Type part name, SKU or vehicle"/>
+<div class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto hidden" id="posSuggest"></div></div>
+<div>
+<label class="text-sm">Add by SKU</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posSku" placeholder="e.g. BRK-001"/>
+</div>
+<button class="px-4 py-2 rounded-xl text-white" id="posAdd" style="background:#0ea5e9">Add</button>
+</div>
+<div class="mt-4 overflow-x-auto">
+<table class="w-full text-sm" id="posTable">
+<thead><tr>
+<th>SKU</th><th>Item</th><th>Price (K)</th><th>Qty</th><th>Line Total</th><th class="no-print">Remove</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="grid md:grid-cols-4 gap-3 mt-4">
+<div class="bg-white rounded-2xl shadow p-4 border">
+<label class="text-sm">Discount (K)</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posDiscount" min="0" type="number" value="0"/>
+<label class="text-sm mt-2">VAT %</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posVat" min="0" type="number" value="16"/>
+</div>
+<div class="bg-white rounded-2xl shadow p-4 border md:col-span-2">
+<div class="flex items-center justify-between text-sm"><span>Subtotal</span><b id="posSubtotal">0.00</b></div>
+<div class="flex items-center justify-between text-sm"><span>Discount</span><b id="posDiscountAmt">0.00</b></div>
+<div class="flex items-center justify-between text-sm"><span>VAT</span><b id="posVatAmt">0.00</b></div>
+<div class="flex items-center justify-between text-lg mt-2"><span>Total</span><b id="posTotal">0.00</b></div>
+</div>
+<div class="flex flex-col gap-2">
+<button class="px-4 py-2 rounded-xl text-white" id="posPay" style="background:#0ea5e9">Process Payment</button>
+<button class="border rounded-xl px-4 py-2" disabled="True" id="posPrint">Print Invoice</button><button class="border rounded-xl px-4 py-2" id="posClear">Clear</button>
+</div>
+</div>
+<!-- Printable Receipt -->
+<div class="mt-4 bg-white rounded-2xl shadow-md p-4 print-area hidden" id="receipt">
+<div class="text-center">
+<h2 class="font-semibold" id="rcptName"></h2>
+<div class="text-xs text-slate-500" id="rcptAddress">Plot 123, Main Road, Lusaka</div>
+</div>
+<div class="text-xs mt-2 flex items-center justify-between">
+<div>Invoice: <span id="rcptInv"></span></div>
+<div>Date: <span id="rcptDate"></span></div>
+</div>
+<table class="w-full text-sm mt-2">
+<thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+<tbody id="rcptBody"></tbody>
+</table>
+<div class="text-sm mt-2 flex flex-col items-end gap-1">
+<div>Subtotal: <b id="rcptSub"></b></div>
+<div>Discount: <b id="rcptDis"></b></div>
+<div>VAT: <b id="rcptVat"></b></div>
+<div class="text-lg">Total: <b id="rcptTot"></b></div>
+</div>
+</div>
+</div>
+<!-- Inventory Page -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-inventory">
+<div class="flex flex-col md:flex-row md:items-end gap-3">
+<div class="flex-1">
+<label class="text-sm">Search</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="invSearch" placeholder="Part, SKU, Make/Model"/>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="px-4 py-2 rounded-xl text-white" id="invAdd" style="background:#0ea5e9">+ New Item</button>
+<button class="border rounded-xl px-4 py-2" id="invExport">Export</button>
+</div>
+</div>
+<div class="overflow-x-auto mt-3">
+<table class="w-full text-sm" id="invTable">
+<thead><tr><th>SKU</th><th>Item</th><th>Make/Model</th><th>Buy (K)</th><th>Sell (K)</th><th>Stock</th><th>Reorder</th><th>Bin</th><th class="no-print">Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<!-- Purchases Page -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-purchases">
+<div class="grid md:grid-cols-4 gap-3">
+<div class="md:col-span-2">
+<label class="text-sm">Supplier</label>
+<select class="w-full rounded-xl border border-slate-300 px-3 py-2" id="grnSupplier"></select>
+</div>
+<div>
+<label class="text-sm">SKU</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="grnSku" placeholder="Existing item SKU"/>
+</div>
+<div>
+<label class="text-sm">Qty</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="grnQty" min="1" type="number" value="1"/>
+</div>
+</div>
+<div class="flex gap-2 mt-3">
+<button class="px-4 py-2 rounded-xl text-white" id="grnAdd" style="background:#0ea5e9">Receive Stock</button>
+<button class="border rounded-xl px-4 py-2" id="grnClear">Clear</button>
+</div>
+<div class="mt-4">
+<h3 class="font-semibold mb-2">Recent GRNs</h3>
+<ul class="text-sm space-y-1" id="grnList"></ul>
+</div>
+</div>
+<!-- Sales Records -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-sales">
+<div class="grid md:grid-cols-4 gap-3 mb-3">
+<div>
+<label class="text-sm">From</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="salesFrom" type="date"/>
+</div>
+<div>
+<label class="text-sm">To</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="salesTo" type="date"/>
+</div>
+<div class="md:col-span-2 flex items-end gap-2">
+<button class="px-4 py-2 rounded-xl text-white" id="salesFilter" style="background:#0ea5e9">Filter</button>
+<button class="border rounded-xl px-4 py-2" id="salesPrint">Print Daily Summary</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-sm" id="salesTable">
+<thead><tr><th>Date</th><th>Invoice</th><th>Items</th><th>Total (K)</th><th>Cashier</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<!-- Suppliers Page -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-suppliers">
+<div class="grid md:grid-cols-3 gap-3">
+<div>
+<label class="text-sm">Name</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="supName"/>
+</div>
+<div>
+<label class="text-sm">Phone</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="supPhone"/>
+</div>
+<div>
+<label class="text-sm">Email</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="supEmail"/>
+</div>
+</div>
+<div class="flex gap-2 mt-3">
+<button class="px-4 py-2 rounded-xl text-white" id="supAdd" style="background:#0ea5e9">Add Supplier</button>
+<button class="border rounded-xl px-4 py-2" id="supClear">Clear</button>
+</div>
+<div class="mt-3">
+<table class="w-full text-sm" id="supTable">
+<thead><tr><th>Name</th><th>Phone</th><th>Email</th><th class="no-print">Actions</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<!-- Settings Page -->
+<div class="hidden bg-white rounded-2xl shadow-md p-4" id="page-settings">
+<h3 class="font-semibold mb-2">Business Settings</h3>
+<div class="grid md:grid-cols-3 gap-3">
+<div>
+<label class="text-sm">Business Name</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="setName" placeholder="AutoSpares Pro"/>
+</div>
+<div>
+<label class="text-sm">Address</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="setAddress" placeholder="Plot 123, Main Road, Lusaka"/>
+</div>
+<div>
+<label class="text-sm">Currency Symbol</label>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="setCur" value="K"/>
+</div>
+</div>
+<h3 class="font-semibold mt-4 mb-2">Users</h3>
+<div class="grid md:grid-cols-4 gap-3">
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="uName" placeholder="username"/>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="uPass" placeholder="password"/>
+<select class="w-full rounded-xl border border-slate-300 px-3 py-2" id="uRole">
+<option>Admin</option>
+<option>Manager</option>
+<option>Cashier</option>
+</select>
+<button class="px-4 py-2 rounded-xl text-white" id="uAdd" style="background:#0ea5e9">+ Add User</button>
+</div>
+<div class="mt-3 overflow-x-auto">
+<table class="w-full text-sm" id="uTable"><thead><tr><th>User</th><th>Role</th><th class="no-print">Actions</th></tr></thead><tbody></tbody></table>
+</div>
+</div>
+</section>
+</main>
+<!-- Modals -->
+<dialog class="rounded-2xl p-0 w-full max-w-2xl" id="itemModal">
+<form class="p-4" method="dialog">
+<h3 class="font-semibold text-lg mb-2" id="itemModalTitle">New Item</h3>
+<div class="grid md:grid-cols-3 gap-3">
+<div><label class="text-sm">SKU</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mSku" required=""/></div>
+<div class="md:col-span-2"><label class="text-sm">Item Name</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mName" required=""/></div>
+<div><label class="text-sm">Vehicle Make</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mMake"/></div>
+<div><label class="text-sm">Vehicle Model</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mModel"/></div>
+<div><label class="text-sm">Category</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mCat" placeholder="Brakes, Filters, ..."/></div>
+<div><label class="text-sm">Buy Price (K)</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mBuy" step="0.01" type="number" value="0"/></div>
+<div><label class="text-sm">Sell Price (K)</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mSell" step="0.01" type="number" value="0"/></div>
+<div><label class="text-sm">Stock</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mStock" type="number" value="0"/></div>
+<div><label class="text-sm">Reorder Level</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mReorder" type="number" value="5"/></div>
+<div><label class="text-sm">Bin/Location</label><input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mBin" placeholder="Aisle 1 / Bin 3"/></div>
+<div class="md:col-span-3"><label class="text-sm">Notes</label><textarea class="w-full rounded-xl border border-slate-300 px-3 py-2" id="mNotes"></textarea></div>
+</div>
+<div class="mt-4 flex justify-end gap-2">
+<button class="border rounded-xl px-4 py-2" value="cancel">Cancel</button>
+<button class="px-4 py-2 rounded-xl text-white" id="mSave" style="background:#0ea5e9" value="default">Save</button>
+</div>
+</form>
+</dialog>
+<script>
     // ---------- Storage & Seed ----------
     const KEY = 'autospares';
     const state = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -501,7 +488,7 @@
       document.getElementById('posVatAmt').innerText = vat.toFixed(2);
       document.getElementById('posTotal').innerText = total.toFixed(2);
     }
-    function posCheckout(){
+    function posProcessPayment(){
       if(pos.cart.length===0){ alert('Cart is empty'); return; }
       // stock check
       for(const l of pos.cart){
@@ -531,7 +518,9 @@
       document.getElementById('rcptBody').innerHTML = sale.lines.map(l=>`<tr><td>${l.name}</td><td>${l.qty}</td><td>${fmt(l.price)}</td><td>${fmt(l.qty*l.price)}</td></tr>`).join('');
       document.getElementById('receipt').classList.remove('hidden');
       pos.cart = []; renderPos(); persist();
-      window.print();
+      // Enable print button after payment
+      const pb = document.getElementById('posPrint'); if(pb){ pb.disabled = false; }
+      alert('Payment processed successfully. Invoice ready to print.');
     }
 
     // ---------- Inventory ----------
@@ -663,6 +652,7 @@
       buildDashboard(); renderInv(document.getElementById('invSearch').value||''); renderSales(); renderSupTable(); renderGrn(); renderSupSelect();
       // receipt header
       document.getElementById('rcptAddress').innerText = state.settings.address||'';
+      const rn = document.getElementById('rcptName'); if(rn){ rn.innerText = state.settings.name || 'AutoSpares Pro'; }
     }
 
     // ---------- Events ----------
@@ -703,7 +693,8 @@
     document.getElementById('posDiscount').addEventListener('input',renderPos);
     document.getElementById('posVat').addEventListener('input',renderPos);
     document.getElementById('posClear').addEventListener('click',()=>{ pos.cart=[]; renderPos(); });
-    document.getElementById('posCheckout').addEventListener('click',posCheckout);
+    document.getElementById('posPay').addEventListener('click',posProcessPayment);
+    document.getElementById('posPrint').addEventListener('click',()=>window.print());
 
     // Inventory
     document.getElementById('invSearch').addEventListener('input',(e)=>renderInv(e.target.value));
@@ -786,6 +777,52 @@
     document.getElementById('btnDismiss').addEventListener('click', () => {
       document.getElementById('installBanner').classList.add('hidden');
     });
+
+    
+    // POS Search suggestions
+    function buildPosSuggestions(q){
+      const list = document.getElementById('posSuggest');
+      if(!list) return;
+      const query = (q||'').trim().toLowerCase();
+      list.innerHTML='';
+      if(!query){ list.classList.add('hidden'); return; }
+      const matches = state.items.filter(i=>[i.sku,i.name,i.make,i.model].filter(Boolean).some(v=>String(v).toLowerCase().includes(query))).slice(0,8);
+      if(matches.length===0){ list.classList.add('hidden'); return; }
+      matches.forEach(it=>{
+        const div = document.createElement('div');
+        div.className = 'suggest-item';
+        div.innerHTML = `<b>${it.sku}</b> — ${it.name} <span class="text-xs text-slate-500">${[it.make,it.model].filter(Boolean).join(' ')}</span>`;
+        div.addEventListener('click',()=>{ posAddBySku(it.sku); list.classList.add('hidden'); document.getElementById('posSearch').value=''; });
+        list.appendChild(div);
+      });
+      list.classList.remove('hidden');
+    }
+    const posSearchEl = document.getElementById('posSearch');
+    if(posSearchEl){
+      posSearchEl.addEventListener('input', (e)=> buildPosSuggestions(e.target.value));
+      posSearchEl.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault();
+          const list = document.getElementById('posSuggest');
+          const first = list && list.firstElementChild;
+          if(first){
+            first.click();
+          } else {
+            // fall back: try add first match
+            const q = posSearchEl.value.trim().toLowerCase();
+            const hit = state.items.find(i=>[i.sku,i.name,i.make,i.model].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)));
+            if(hit) posAddBySku(hit.sku);
+          }
+        }
+      });
+      // Hide suggestions on outside click
+      document.addEventListener('click',(e)=>{
+        const list = document.getElementById('posSuggest');
+        if(!list) return;
+        if(!posSearchEl.contains(e.target) && !list.contains(e.target)){
+          list.classList.add('hidden');
+        }
+      });
+    }
 
     // Init
     show('login'); refreshAll();
