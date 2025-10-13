@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AutoSpares Pro — Sales & Inventory</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0ea5e9">
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed', err));
+      });
+    }
+  </script>
+  <style>
+    :root { --brand:#0ea5e9; }
+    .brand { color: var(--brand); }
+    .brand-bg { background: var(--brand); }
+    .card { /* utility via Tailwind with progressive enhancement */ }
+    .pill { }
+    .btn { }
+    .btn-primary { }
+    .btn-danger { }
+    .input { }
+    .table { }
+    .table th { }
+    .table td { }
+    .badge { }
+    .hidden-print { }
+    @media print {
+      .no-print { display:none !important; }
+      .print-area { padding: 0 !important; box-shadow: none !important; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+  <!-- Install banner (optional) -->
+  <div id="installBanner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-xl px-4 py-2 flex items-center gap-3 z-50">
+    <span>Install AutoSpares Pro?</span>
+    <button id="btnInstall" class="px-3 py-1 rounded-lg text-white" style="background:#0ea5e9">Install</button>
+    <button id="btnDismiss" class="px-3 py-1 rounded-lg border">Dismiss</button>
+  </div>
+
+  <!-- Top Bar -->
+  <header class="no-print sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl brand-bg grid place-items-center text-white font-bold">AS</div>
+        <div>
+          <h1 class="text-lg font-semibold">AutoSpares <span class="brand">Pro</span></h1>
+          <p class="text-xs text-slate-500">Sales & Inventory Management</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2" id="topUserBar">
+        <span class="pill" id="activeRole">Role: Guest</span>
+        <button class="btn" id="btnBackup">Backup</button>
+        <button class="btn" id="btnRestore">Restore</button>
+        <label class="btn cursor-pointer">
+          Import <input type="file" id="importFile" class="hidden" accept="application/json" />
+        </label>
+        <button class="btn" id="btnLogout">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Container -->
+  <main class="max-w-7xl mx-auto p-4 grid md:grid-cols-12 gap-4">
+    <!-- Sidebar Navigation -->
+    <aside class="no-print md:col-span-3 lg:col-span-2">
+      <nav class="bg-white rounded-2xl shadow-md p-4 space-y-2" id="nav">
+        <button data-page="dashboard" class="w-full border rounded-xl px-4 py-2" id="navDashboard">📊 Dashboard</button>
+        <button data-page="pos" class="w-full border rounded-xl px-4 py-2" id="navPOS">🧾 Point of Sale</button>
+        <button data-page="inventory" class="w-full border rounded-xl px-4 py-2" id="navInventory">📦 Inventory</button>
+        <button data-page="purchases" class="w-full border rounded-xl px-4 py-2" id="navPurchases">📥 Purchases/GRN</button>
+        <button data-page="sales" class="w-full border rounded-xl px-4 py-2" id="navSales">📚 Sales Records</button>
+        <button data-page="suppliers" class="w-full border rounded-xl px-4 py-2" id="navSuppliers">🏭 Suppliers</button>
+        <button data-page="settings" class="w-full border rounded-xl px-4 py-2" id="navSettings">⚙️ Settings</button>
+      </nav>
+
+      <!-- Quick KPIs -->
+      <div class="bg-white rounded-2xl shadow-md p-4 mt-4 space-y-3" id="quickKpis">
+        <div class="flex items-center justify-between"><span class="text-slate-500">Items</span><b id="kpiItems">0</b></div>
+        <div class="flex items-center justify-between"><span class="text-slate-500">On‑hand Stock</span><b id="kpiStock">0</b></div>
+        <div class="flex items-center justify-between"><span class="text-slate-500">Today Sales (K)</span><b id="kpiToday">0.00</b></div>
+        <div class="flex items-center justify-between"><span class="text-slate-500">Low Stock</span><b id="kpiLow">0</b></div>
+      </div>
+    </aside>
+
+    <!-- Page Content -->
+    <section class="md:col-span-9 lg:col-span-10 space-y-4" id="pages">
+
+      <!-- Login Page -->
+      <div id="page-login" class="bg-white rounded-2xl shadow-md p-4 max-w-lg mx-auto">
+        <h2 class="text-xl font-semibold mb-2">Login</h2>
+        <p class="text-sm text-slate-500 mb-4">Demo users: <b>admin/admin123</b>, <b>manager/manager123</b>, <b>cashier/cashier123</b></p>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Username</label>
+            <input id="loginUser" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="e.g. admin" />
+          </div>
+          <div>
+            <label class="text-sm">Password</label>
+            <input id="loginPass" type="password" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="••••••" />
+          </div>
+        </div>
+        <div class="flex items-center gap-2 mt-4">
+          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="btnLogin">Login</button>
+          <button class="border rounded-xl px-4 py-2" id="btnFillDemo">Fill demo</button>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="page-dashboard" class="hidden">
+        <div class="grid lg:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Today Summary</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="p-3 rounded-xl bg-slate-50">
+                <div class="text-slate-500">Invoices</div>
+                <div class="text-xl font-bold" id="dashInvoices">0</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50">
+                <div class="text-slate-500">Sales (K)</div>
+                <div class="text-xl font-bold" id="dashSales">0.00</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50">
+                <div class="text-slate-500">Avg. Basket (K)</div>
+                <div class="text-xl font-bold" id="dashAvg">0.00</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50">
+                <div class="text-slate-500">Items Sold</div>
+                <div class="text-xl font-bold" id="dashUnits">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Top Selling</h3>
+            <ul id="topSelling" class="space-y-2 text-sm"></ul>
+          </div>
+          <div class="bg-white rounded-2xl shadow-md p-4"><h3 class="font-semibold mb-2">Low Stock</h3>
+            <ul id="lowStock" class="space-y-2 text-sm"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- POS Page -->
+      <div id="page-pos" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <div class="flex flex-col md:flex-row md:items-end gap-3">
+          <div class="flex-1">
+            <label class="text-sm">Search Item</label>
+            <input id="posSearch" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Type part name, SKU or vehicle" />
+          </div>
+          <div>
+            <label class="text-sm">Add by SKU</label>
+            <input id="posSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="e.g. BRK-001" />
+          </div>
+          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="posAdd">Add</button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm" id="posTable">
+            <thead><tr>
+              <th>SKU</th><th>Item</th><th>Price (K)</th><th>Qty</th><th>Line Total</th><th class="no-print">Remove</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-3 mt-4">
+          <div class="bg-white rounded-2xl shadow p-4 border">
+            <label class="text-sm">Discount (K)</label>
+            <input id="posDiscount" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" min="0" />
+            <label class="text-sm mt-2">VAT %</label>
+            <input id="posVat" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="16" min="0" />
+          </div>
+          <div class="bg-white rounded-2xl shadow p-4 border md:col-span-2">
+            <div class="flex items-center justify-between text-sm"><span>Subtotal</span><b id="posSubtotal">0.00</b></div>
+            <div class="flex items-center justify-between text-sm"><span>Discount</span><b id="posDiscountAmt">0.00</b></div>
+            <div class="flex items-center justify-between text-sm"><span>VAT</span><b id="posVatAmt">0.00</b></div>
+            <div class="flex items-center justify-between text-lg mt-2"><span>Total</span><b id="posTotal">0.00</b></div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="posCheckout">Checkout</button>
+            <button class="border rounded-xl px-4 py-2" id="posClear">Clear</button>
+          </div>
+        </div>
+
+        <!-- Printable Receipt -->
+        <div id="receipt" class="mt-4 bg-white rounded-2xl shadow-md p-4 print-area hidden">
+          <div class="text-center">
+            <h2 class="font-semibold">AutoSpares Pro</h2>
+            <div class="text-xs text-slate-500" id="rcptAddress">Plot 123, Main Road, Lusaka</div>
+          </div>
+          <div class="text-xs mt-2 flex items-center justify-between">
+            <div>Invoice: <span id="rcptInv"></span></div>
+            <div>Date: <span id="rcptDate"></span></div>
+          </div>
+          <table class="w-full text-sm mt-2">
+            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+            <tbody id="rcptBody"></tbody>
+          </table>
+          <div class="text-sm mt-2 flex flex-col items-end gap-1">
+            <div>Subtotal: <b id="rcptSub"></b></div>
+            <div>Discount: <b id="rcptDis"></b></div>
+            <div>VAT: <b id="rcptVat"></b></div>
+            <div class="text-lg">Total: <b id="rcptTot"></b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Page -->
+      <div id="page-inventory" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <div class="flex flex-col md:flex-row md:items-end gap-3">
+          <div class="flex-1">
+            <label class="text-sm">Search</label>
+            <input id="invSearch" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Part, SKU, Make/Model" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="invAdd">+ New Item</button>
+            <button class="border rounded-xl px-4 py-2" id="invExport">Export</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto mt-3">
+          <table class="w-full text-sm" id="invTable">
+            <thead><tr><th>SKU</th><th>Item</th><th>Make/Model</th><th>Buy (K)</th><th>Sell (K)</th><th>Stock</th><th>Reorder</th><th>Bin</th><th class="no-print">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Purchases Page -->
+      <div id="page-purchases" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <div class="grid md:grid-cols-4 gap-3">
+          <div class="md:col-span-2">
+            <label class="text-sm">Supplier</label>
+            <select id="grnSupplier" class="w-full rounded-xl border border-slate-300 px-3 py-2"></select>
+          </div>
+          <div>
+            <label class="text-sm">SKU</label>
+            <input id="grnSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Existing item SKU" />
+          </div>
+          <div>
+            <label class="text-sm">Qty</label>
+            <input id="grnQty" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="1" min="1" />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="grnAdd">Receive Stock</button>
+          <button class="border rounded-xl px-4 py-2" id="grnClear">Clear</button>
+        </div>
+        <div class="mt-4">
+          <h3 class="font-semibold mb-2">Recent GRNs</h3>
+          <ul id="grnList" class="text-sm space-y-1"></ul>
+        </div>
+      </div>
+
+      <!-- Sales Records -->
+      <div id="page-sales" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <div class="grid md:grid-cols-4 gap-3 mb-3">
+          <div>
+            <label class="text-sm">From</label>
+            <input id="salesFrom" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
+          </div>
+          <div>
+            <label class="text-sm">To</label>
+            <input id="salesTo" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
+          </div>
+          <div class="md:col-span-2 flex items-end gap-2">
+            <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="salesFilter">Filter</button>
+            <button class="border rounded-xl px-4 py-2" id="salesPrint">Print Daily Summary</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="salesTable">
+            <thead><tr><th>Date</th><th>Invoice</th><th>Items</th><th>Total (K)</th><th>Cashier</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Suppliers Page -->
+      <div id="page-suppliers" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <div class="grid md:grid-cols-3 gap-3">
+          <div>
+            <label class="text-sm">Name</label>
+            <input id="supName" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
+          </div>
+          <div>
+            <label class="text-sm">Phone</label>
+            <input id="supPhone" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
+          </div>
+          <div>
+            <label class="text-sm">Email</label>
+            <input id="supEmail" class="w-full rounded-xl border border-slate-300 px-3 py-2" />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="supAdd">Add Supplier</button>
+          <button class="border rounded-xl px-4 py-2" id="supClear">Clear</button>
+        </div>
+        <div class="mt-3">
+          <table class="w-full text-sm" id="supTable">
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th class="no-print">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Settings Page -->
+      <div id="page-settings" class="hidden bg-white rounded-2xl shadow-md p-4">
+        <h3 class="font-semibold mb-2">Business Settings</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div>
+            <label class="text-sm">Business Name</label>
+            <input id="setName" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="AutoSpares Pro" />
+          </div>
+          <div>
+            <label class="text-sm">Address</label>
+            <input id="setAddress" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Plot 123, Main Road, Lusaka" />
+          </div>
+          <div>
+            <label class="text-sm">Currency Symbol</label>
+            <input id="setCur" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="K" />
+          </div>
+        </div>
+        <h3 class="font-semibold mt-4 mb-2">Users</h3>
+        <div class="grid md:grid-cols-4 gap-3">
+          <input id="uName" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="username" />
+          <input id="uPass" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="password" />
+          <select id="uRole" class="w-full rounded-xl border border-slate-300 px-3 py-2">
+            <option>Admin</option>
+            <option>Manager</option>
+            <option>Cashier</option>
+          </select>
+          <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="uAdd">+ Add User</button>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-sm" id="uTable"><thead><tr><th>User</th><th>Role</th><th class="no-print">Actions</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <dialog id="itemModal" class="rounded-2xl p-0 w-full max-w-2xl">
+    <form method="dialog" class="p-4">
+      <h3 class="font-semibold text-lg mb-2" id="itemModalTitle">New Item</h3>
+      <div class="grid md:grid-cols-3 gap-3">
+        <div><label class="text-sm">SKU</label><input id="mSku" class="w-full rounded-xl border border-slate-300 px-3 py-2" required /></div>
+        <div class="md:col-span-2"><label class="text-sm">Item Name</label><input id="mName" class="w-full rounded-xl border border-slate-300 px-3 py-2" required /></div>
+        <div><label class="text-sm">Vehicle Make</label><input id="mMake" class="w-full rounded-xl border border-slate-300 px-3 py-2" /></div>
+        <div><label class="text-sm">Vehicle Model</label><input id="mModel" class="w-full rounded-xl border border-slate-300 px-3 py-2" /></div>
+        <div><label class="text-sm">Category</label><input id="mCat" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Brakes, Filters, ..." /></div>
+        <div><label class="text-sm">Buy Price (K)</label><input id="mBuy" type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
+        <div><label class="text-sm">Sell Price (K)</label><input id="mSell" type="number" step="0.01" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
+        <div><label class="text-sm">Stock</label><input id="mStock" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="0" /></div>
+        <div><label class="text-sm">Reorder Level</label><input id="mReorder" type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" value="5" /></div>
+        <div><label class="text-sm">Bin/Location</label><input id="mBin" class="w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Aisle 1 / Bin 3" /></div>
+        <div class="md:col-span-3"><label class="text-sm">Notes</label><textarea id="mNotes" class="w-full rounded-xl border border-slate-300 px-3 py-2"></textarea></div>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="border rounded-xl px-4 py-2" value="cancel">Cancel</button>
+        <button class="px-4 py-2 rounded-xl text-white" style="background:#0ea5e9" id="mSave" value="default">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    // ---------- Storage & Seed ----------
+    const KEY = 'autospares';
+    const state = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (!state.users) {
+      state.users = [
+        { username:'admin', password:'admin123', role:'Admin' },
+        { username:'manager', password:'manager123', role:'Manager' },
+        { username:'cashier', password:'cashier123', role:'Cashier' }
+      ];
+    }
+    if (!state.settings) {
+      state.settings = { name:'AutoSpares Pro', address:'Plot 123, Main Road, Lusaka', currency:'K' };
+    }
+    if (!state.items) {
+      state.items = [
+        { sku:'BRK-001', name:'Brake Pad Set (Front)', make:'Toyota', model:'Corolla', cat:'Brakes', buy:150, sell:250, stock:12, reorder:4, bin:'A1-03', notes:'' },
+        { sku:'FLT-104', name:'Oil Filter', make:'Nissan', model:'NP300', cat:'Filters', buy:40, sell:80, stock:25, reorder:10, bin:'B2-01', notes:'' },
+        { sku:'SPK-016', name:'Spark Plug (Iridium)', make:'Universal', model:'', cat:'Ignition', buy:60, sell:120, stock:8, reorder:6, bin:'C3-07', notes:'' }
+      ];
+    }
+    if (!state.suppliers) state.suppliers = [ {name:'AutoParts Ltd', phone:'+260 97 000 0000', email:'sales@autoparts.example'} ];
+    if (!state.sales) state.sales = [];
+    if (!state.grns) state.grns = [];
+    if (!state.invCounter) state.invCounter = 1000;
+
+    function persist(){ localStorage.setItem(KEY, JSON.stringify(state)); refreshAll(); }
+
+    // ---------- Auth ----------
+    let currentUser = null;
+    const pages = ['login','dashboard','pos','inventory','purchases','sales','suppliers','settings'];
+    function show(page){
+      pages.forEach(p=>{
+        const el = document.getElementById('page-'+p);
+        if(!el) return;
+        if(p===page) el.classList.remove('hidden'); else el.classList.add('hidden');
+      });
+      // toggle sidebar visibility by role
+      const role = currentUser?.role || 'Guest';
+      document.getElementById('activeRole').innerText = 'Role: ' + role;
+      // role permissions: Cashier cannot access Inventory, Purchases, Suppliers, Settings
+      const disabledForCashier = ['inventory','purchases','suppliers','settings'];
+      disabledForCashier.forEach(p=>{
+        const btn = document.querySelector(`[data-page="${p}"]`);
+        if(btn){
+          if(role==='Cashier') btn.classList.add('opacity-50','pointer-events-none'); else btn.classList.remove('opacity-50','pointer-events-none');
+        }
+      });
+    }
+
+    function login(u,p){
+      const user = state.users.find(x=>x.username===u && x.password===p);
+      if(user){ currentUser = {username:user.username, role:user.role}; show('dashboard'); refreshAll(); }
+      else alert('Invalid credentials');
+    }
+
+    // ---------- Utilities ----------
+    const fmt = n => (state.settings.currency||'K') + ' ' + Number(n||0).toFixed(2);
+    function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+    // ---------- Dashboard ----------
+    function buildDashboard(){
+      // KPIs
+      document.getElementById('kpiItems').innerText = state.items.length;
+      const onhand = state.items.reduce((a,b)=>a+(Number(b.stock)||0),0);
+      document.getElementById('kpiStock').innerText = onhand;
+      const t = new Date().toISOString().slice(0,10);
+      const todaySales = state.sales.filter(s=>s.date.startsWith(t)).reduce((a,b)=>a+Number(b.total),0);
+      document.getElementById('kpiToday').innerText = todaySales.toFixed(2);
+      const low = state.items.filter(i=>Number(i.stock)<=Number(i.reorder)).length;
+      document.getElementById('kpiLow').innerText = low;
+
+      // Today summary boxes
+      const today = state.sales.filter(s=>s.date.startsWith(t));
+      document.getElementById('dashInvoices').innerText = today.length;
+      const tSum = today.reduce((a,b)=>a+Number(b.total),0);
+      document.getElementById('dashSales').innerText = tSum.toFixed(2);
+      const units = today.reduce((a,b)=>a+b.lines.reduce((x,y)=>x+Number(y.qty),0),0);
+      document.getElementById('dashUnits').innerText = units;
+      document.getElementById('dashAvg').innerText = (today.length? (tSum/today.length):0).toFixed(2);
+
+      // Top Selling
+      const agg = {};
+      state.sales.forEach(s=>s.lines.forEach(l=>{ agg[l.sku]=(agg[l.sku]||0)+Number(l.qty); }));
+      const top = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const ul = document.getElementById('topSelling'); ul.innerHTML='';
+      top.forEach(([sku,qty])=>{
+        const item = state.items.find(i=>i.sku===sku);
+        const li = document.createElement('li');
+        li.className='flex items-center justify-between';
+        li.innerHTML = `<span class="text-slate-600">${item?item.name:sku}</span><b>${qty}</b>`;
+        ul.appendChild(li);
+      });
+
+      // Low stock list
+      const lows = state.items.filter(i=>Number(i.stock)<=Number(i.reorder)).sort((a,b)=>a.stock-b.stock);
+      const l2 = document.getElementById('lowStock'); l2.innerHTML='';
+      lows.forEach(it=>{
+        const li=document.createElement('li');
+        li.className='flex items-center justify-between';
+        li.innerHTML = `<div><b>${it.sku}</b> - ${it.name}</div><span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">${it.stock} left</span>`;
+        l2.appendChild(li);
+      });
+    }
+
+    // ---------- POS ----------
+    const pos = { cart: [] };
+    function posAddBySku(sku){
+      const item = state.items.find(i=>i.sku.toLowerCase()===sku.toLowerCase());
+      if(!item){ alert('Item not found'); return; }
+      const line = pos.cart.find(l=>l.sku===item.sku);
+      if(line) line.qty++; else pos.cart.push({ sku:item.sku, name:item.name, price:Number(item.sell), qty:1 });
+      renderPos();
+    }
+    function renderPos(){
+      const tb = document.querySelector('#posTable tbody'); tb.innerHTML='';
+      pos.cart.forEach((l,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${l.sku}</td><td>${l.name}</td><td><input type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" style="max-width:110px" value="${Number(l.price).toFixed(2)}" data-idx="${i}" data-field="price"/></td><td><input type="number" class="w-full rounded-xl border border-slate-300 px-3 py-2" style="max-width:80px" value="${l.qty}" min="1" data-idx="${i}" data-field="qty"/></td><td>${(l.qty*l.price).toFixed(2)}</td><td class="no-print"><button class="px-3 py-1 rounded bg-rose-600 text-white" data-del="${i}">Remove</button></td>`;
+        tb.appendChild(tr);
+      });
+      // totals
+      const subtotal = pos.cart.reduce((a,b)=>a+(b.qty*b.price),0);
+      const dis = Number(document.getElementById('posDiscount').value||0);
+      const vatp = Number(document.getElementById('posVat').value||0);
+      const vat = (Math.max(subtotal-dis,0))*vatp/100;
+      const total = Math.max(subtotal-dis,0)+vat;
+      document.getElementById('posSubtotal').innerText = subtotal.toFixed(2);
+      document.getElementById('posDiscountAmt').innerText = dis.toFixed(2);
+      document.getElementById('posVatAmt').innerText = vat.toFixed(2);
+      document.getElementById('posTotal').innerText = total.toFixed(2);
+    }
+    function posCheckout(){
+      if(pos.cart.length===0){ alert('Cart is empty'); return; }
+      // stock check
+      for(const l of pos.cart){
+        const it = state.items.find(i=>i.sku===l.sku);
+        if(!it || it.stock<l.qty) return alert(`Insufficient stock for ${l.sku}`);
+      }
+      // deduct
+      pos.cart.forEach(l=>{
+        const it = state.items.find(i=>i.sku===l.sku);
+        it.stock -= Number(l.qty);
+      });
+      const subtotal = pos.cart.reduce((a,b)=>a+(b.qty*b.price),0);
+      const discount = Number(document.getElementById('posDiscount').value||0);
+      const vatp = Number(document.getElementById('posVat').value||0);
+      const vat = (Math.max(subtotal-discount,0))*vatp/100;
+      const total = Math.max(subtotal-discount,0)+vat;
+      const invoice = 'INV'+ (++state.invCounter);
+      const sale = { date:new Date().toISOString(), invoice, cashier: currentUser?.username||'unknown', subtotal, discount, vatp, vat, total, lines: JSON.parse(JSON.stringify(pos.cart)) };
+      state.sales.push(sale);
+      // render receipt
+      document.getElementById('rcptInv').innerText = invoice;
+      document.getElementById('rcptDate').innerText = new Date(sale.date).toLocaleString();
+      document.getElementById('rcptSub').innerText = fmt(subtotal);
+      document.getElementById('rcptDis').innerText = fmt(discount);
+      document.getElementById('rcptVat').innerText = fmt(vat);
+      document.getElementById('rcptTot').innerText = fmt(total);
+      document.getElementById('rcptBody').innerHTML = sale.lines.map(l=>`<tr><td>${l.name}</td><td>${l.qty}</td><td>${fmt(l.price)}</td><td>${fmt(l.qty*l.price)}</td></tr>`).join('');
+      document.getElementById('receipt').classList.remove('hidden');
+      pos.cart = []; renderPos(); persist();
+      window.print();
+    }
+
+    // ---------- Inventory ----------
+    function renderInv(filter=''){
+      const tb = document.querySelector('#invTable tbody'); tb.innerHTML='';
+      const q = filter.trim().toLowerCase();
+      state.items.filter(i=> !q || [i.sku,i.name,i.make,i.model,i.cat].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)) )
+        .forEach(it=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML = `<td>${it.sku}</td><td>${it.name}</td><td>${[it.make,it.model].filter(Boolean).join(' ')}</td><td>${it.buy.toFixed(2)}</td><td>${it.sell.toFixed(2)}</td><td>${it.stock}</td><td>${it.reorder}</td><td>${it.bin||''}</td><td class="no-print flex gap-2"><button class="border rounded-xl px-3 py-1" data-edit="${it.sku}">Edit</button><button class="px-3 py-1 rounded bg-rose-600 text-white" data-del-item="${it.sku}">Delete</button></td>`;
+          tb.appendChild(tr);
+        });
+    }
+
+    function openItemModal(item){
+      document.getElementById('itemModalTitle').innerText = item? 'Edit Item' : 'New Item';
+      document.getElementById('mSku').value = item?.sku||'';
+      document.getElementById('mSku').disabled = !!item; // lock SKU when editing
+      document.getElementById('mName').value = item?.name||'';
+      document.getElementById('mMake').value = item?.make||'';
+      document.getElementById('mModel').value = item?.model||'';
+      document.getElementById('mCat').value = item?.cat||'';
+      document.getElementById('mBuy').value = item?.buy||0;
+      document.getElementById('mSell').value = item?.sell||0;
+      document.getElementById('mStock').value = item?.stock||0;
+      document.getElementById('mReorder').value = item?.reorder||5;
+      document.getElementById('mBin').value = item?.bin||'';
+      document.getElementById('mNotes').value = item?.notes||'';
+      document.getElementById('itemModal').showModal();
+    }
+
+    function saveItemFromModal(){
+      const sku = document.getElementById('mSku').value.trim();
+      const data = {
+        sku,
+        name: document.getElementById('mName').value.trim(),
+        make: document.getElementById('mMake').value.trim(),
+        model: document.getElementById('mModel').value.trim(),
+        cat: document.getElementById('mCat').value.trim(),
+        buy: Number(document.getElementById('mBuy').value||0),
+        sell: Number(document.getElementById('mSell').value||0),
+        stock: Number(document.getElementById('mStock').value||0),
+        reorder: Number(document.getElementById('mReorder').value||5),
+        bin: document.getElementById('mBin').value.trim(),
+        notes: document.getElementById('mNotes').value.trim()
+      };
+      if(!sku) return alert('SKU required');
+      const existing = state.items.find(i=>i.sku===sku);
+      if(existing){ Object.assign(existing, data); }
+      else state.items.push(data);
+      document.getElementById('itemModal').close(); persist();
+    }
+
+    // ---------- Purchases / GRN ----------
+    function renderSupSelect(){
+      const sel = document.getElementById('grnSupplier'); sel.innerHTML='';
+      state.suppliers.forEach((s,i)=>{
+        const o=document.createElement('option'); o.value=i; o.textContent=s.name; sel.appendChild(o);
+      });
+    }
+    function receiveStock(){
+      const sku = document.getElementById('grnSku').value.trim();
+      const qty = Number(document.getElementById('grnQty').value||0);
+      const item = state.items.find(i=>i.sku.toLowerCase()===sku.toLowerCase());
+      if(!item) return alert('Unknown SKU');
+      if(qty<=0) return alert('Qty must be > 0');
+      item.stock += qty;
+      const entry = { date:new Date().toISOString(), supplier: state.suppliers[document.getElementById('grnSupplier').value]?.name||'', sku:item.sku, qty };
+      state.grns.unshift(entry);
+      persist();
+    }
+    function renderGrn(){
+      const ul=document.getElementById('grnList'); ul.innerHTML='';
+      state.grns.slice(0,20).forEach(g=>{
+        const li=document.createElement('li');
+        li.innerHTML = `${new Date(g.date).toLocaleString()} — <b>${g.supplier}</b> received <b>${g.qty}</b> of <b>${g.sku}</b>`;
+        ul.appendChild(li);
+      });
+    }
+
+    // ---------- Sales Records ----------
+    function renderSales(){
+      const from = document.getElementById('salesFrom').value;
+      const to = document.getElementById('salesTo').value;
+      const tb = document.querySelector('#salesTable tbody'); tb.innerHTML='';
+      state.sales.filter(s=>{
+        const d = s.date.slice(0,10);
+        if(from && d<from) return false; if(to && d>to) return false; return true;
+      }).slice().reverse().forEach(s=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${new Date(s.date).toLocaleString()}</td><td>${s.invoice}</td><td>${s.lines.length}</td><td>${s.total.toFixed(2)}</td><td>${s.cashier}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    // ---------- Suppliers ----------
+    function renderSupTable(){
+      const tb=document.querySelector('#supTable tbody'); tb.innerHTML='';
+      state.suppliers.forEach((s,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${s.name}</td><td>${s.phone||''}</td><td>${s.email||''}</td><td class="no-print"><button class="border rounded-xl px-3 py-1" data-editsup="${idx}">Edit</button><button class="px-3 py-1 rounded bg-rose-600 text-white" data-delsup="${idx}">Delete</button></td>`;
+        tb.appendChild(tr);
+      });
+      renderSupSelect();
+    }
+
+    // ---------- Users & Settings ----------
+    function renderUsers(){
+      document.getElementById('setName').value = state.settings.name||'';
+      document.getElementById('setAddress').value = state.settings.address||'';
+      document.getElementById('setCur').value = state.settings.currency||'K';
+      const tb=document.querySelector('#uTable tbody'); tb.innerHTML='';
+      state.users.forEach((u,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td class="no-print"><button class="border rounded-xl px-3 py-1" data-deluser="${idx}">Delete</button></td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    // ---------- Backup/Restore ----------
+    function downloadJSON(filename, data){
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // ---------- Refresh All ----------
+    function refreshAll(){
+      buildDashboard(); renderInv(document.getElementById('invSearch').value||''); renderSales(); renderSupTable(); renderGrn(); renderSupSelect();
+      // receipt header
+      document.getElementById('rcptAddress').innerText = state.settings.address||'';
+    }
+
+    // ---------- Events ----------
+    document.getElementById('btnLogin').addEventListener('click',()=>{
+      login(document.getElementById('loginUser').value.trim(), document.getElementById('loginPass').value);
+    });
+    document.getElementById('btnFillDemo').addEventListener('click',()=>{
+      document.getElementById('loginUser').value='admin'; document.getElementById('loginPass').value='admin123';
+    });
+    document.getElementById('btnLogout').addEventListener('click',()=>{ currentUser=null; show('login'); });
+
+    // Nav
+    document.querySelectorAll('#nav button').forEach(btn=>btn.addEventListener('click',()=>{
+      const p = btn.getAttribute('data-page');
+      if(!currentUser && p!=='login') return alert('Please login first');
+      if(currentUser?.role==='Cashier' && ['inventory','purchases','suppliers','settings'].includes(p)) return alert('Access denied for Cashier');
+      show(p);
+    }));
+
+    // POS
+    document.getElementById('posAdd').addEventListener('click',()=>{
+      const sku = document.getElementById('posSku').value.trim();
+      if(sku) posAddBySku(sku); else {
+        // try search field first match
+        const q = document.getElementById('posSearch').value.trim().toLowerCase();
+        const hit = state.items.find(i=>[i.sku,i.name,i.make,i.model].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)));
+        if(hit) posAddBySku(hit.sku); else alert('No match');
+      }
+    });
+    document.getElementById('posTable').addEventListener('input',(e)=>{
+      const idx = e.target.getAttribute('data-idx');
+      const field = e.target.getAttribute('data-field');
+      if(idx===null) return; pos.cart[idx][field] = Number(e.target.value||0); renderPos();
+    });
+    document.getElementById('posTable').addEventListener('click',(e)=>{
+      const d = e.target.getAttribute('data-del'); if(d!==null){ pos.cart.splice(Number(d),1); renderPos(); }
+    });
+    document.getElementById('posDiscount').addEventListener('input',renderPos);
+    document.getElementById('posVat').addEventListener('input',renderPos);
+    document.getElementById('posClear').addEventListener('click',()=>{ pos.cart=[]; renderPos(); });
+    document.getElementById('posCheckout').addEventListener('click',posCheckout);
+
+    // Inventory
+    document.getElementById('invSearch').addEventListener('input',(e)=>renderInv(e.target.value));
+    document.getElementById('invAdd').addEventListener('click',()=>openItemModal());
+    document.getElementById('invExport').addEventListener('click',()=>downloadJSON('inventory.json', state.items));
+    document.getElementById('invTable').addEventListener('click',(e)=>{
+      const sku = e.target.getAttribute('data-edit'); if(sku){ const it=state.items.find(i=>i.sku===sku); openItemModal(it); return; }
+      const del = e.target.getAttribute('data-del-item'); if(del){ if(confirm('Delete item '+del+'?')){ state.items = state.items.filter(i=>i.sku!==del); persist(); } }
+    });
+
+    // Item modal buttons
+    document.getElementById('mSave').addEventListener('click',(e)=>{ e.preventDefault(); saveItemFromModal(); });
+
+    // Purchases
+    document.getElementById('grnAdd').addEventListener('click',receiveStock);
+    document.getElementById('grnClear').addEventListener('click',()=>{ document.getElementById('grnSku').value=''; document.getElementById('grnQty').value=1; });
+
+    // Sales
+    document.getElementById('salesFilter').addEventListener('click',renderSales);
+    document.getElementById('salesPrint').addEventListener('click',()=>{ window.print(); });
+
+    // Suppliers
+    document.getElementById('supAdd').addEventListener('click',()=>{
+      const s = { name:document.getElementById('supName').value.trim(), phone:document.getElementById('supPhone').value.trim(), email:document.getElementById('supEmail').value.trim() };
+      if(!s.name) return alert('Supplier name required'); state.suppliers.push(s); document.getElementById('supName').value=''; document.getElementById('supPhone').value=''; document.getElementById('supEmail').value=''; persist();
+    });
+    document.getElementById('supClear').addEventListener('click',()=>{ document.getElementById('supName').value=''; document.getElementById('supPhone').value=''; document.getElementById('supEmail').value=''; });
+    document.getElementById('supTable').addEventListener('click',(e)=>{
+      const di = e.target.getAttribute('data-delsup'); if(di){ if(confirm('Delete supplier?')){ state.suppliers.splice(Number(di),1); persist(); return; } }
+      const ei = e.target.getAttribute('data-editsup'); if(ei){ const s=state.suppliers[Number(ei)]; document.getElementById('supName').value=s.name; document.getElementById('supPhone').value=s.phone||''; document.getElementById('supEmail').value=s.email||''; state.suppliers.splice(Number(ei),1); persist(); }
+    });
+
+    // Settings
+    document.getElementById('uAdd').addEventListener('click',()=>{
+      const u = document.getElementById('uName').value.trim(); const p = document.getElementById('uPass').value; const r = document.getElementById('uRole').value;
+      if(!u || !p) return alert('Username & password required');
+      if(state.users.find(x=>x.username===u)) return alert('User exists');
+      state.users.push({username:u,password:p,role:r}); document.getElementById('uName').value=''; document.getElementById('uPass').value=''; persist();
+    });
+    document.getElementById('uTable').addEventListener('click',(e)=>{
+      const di = e.target.getAttribute('data-deluser'); if(di){ if(confirm('Delete user?')){ state.users.splice(Number(di),1); persist(); } }
+    });
+    ['setName','setAddress','setCur'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',()=>{
+        state.settings.name = document.getElementById('setName').value.trim();
+        state.settings.address = document.getElementById('setAddress').value.trim();
+        state.settings.currency = document.getElementById('setCur').value.trim()||'K';
+        persist();
+      });
+    });
+
+    // Backup / Restore / Import
+    document.getElementById('btnBackup').addEventListener('click',()=>downloadJSON('autospares-backup.json', state));
+    document.getElementById('btnRestore').addEventListener('click',()=>{
+      if(!confirm('This will clear current data and load demo data. Continue?')) return;
+      localStorage.removeItem(KEY); location.reload();
+    });
+    document.getElementById('importFile').addEventListener('change',async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const text = await file.text();
+      try { const data = JSON.parse(text); localStorage.setItem(KEY, JSON.stringify(data)); location.reload(); }
+      catch(err){ alert('Invalid JSON'); }
+    });
+
+    // PWA install prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBanner').classList.remove('hidden');
+    });
+    document.getElementById('btnInstall').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        document.getElementById('installBanner').classList.add('hidden');
+      }
+    });
+    document.getElementById('btnDismiss').addEventListener('click', () => {
+      document.getElementById('installBanner').classList.add('hidden');
+    });
+
+    // Init
+    show('login'); refreshAll();
+  </script>
+</body>
+</html>
