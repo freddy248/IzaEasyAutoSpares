@@ -384,6 +384,12 @@
 
     function persist(){ localStorage.setItem(KEY, JSON.stringify(state)); refreshAll(); }
 
+    
+// ---------- Session Auth Guard ----------
+const AUTH_KEY = 'autospares_auth';
+function isAuthed(){ return sessionStorage.getItem(AUTH_KEY) === '1'; }
+function lockToLogin(){ currentUser = null; show('login'); }
+
     // ---------- Auth ----------
     let currentUser = null;
     const pages = ['login','dashboard','pos','inventory','purchases','sales','suppliers','settings'];
@@ -408,7 +414,7 @@
 
     function login(u,p){
       const user = state.users.find(x=>x.username===u && x.password===p);
-      if(user){ currentUser = {username:user.username, role:user.role}; show('dashboard'); refreshAll(); }
+      if (user) { currentUser = {username:user.username, role:user.role}; sessionStorage.setItem(AUTH_KEY,'1'); show('dashboard'); refreshAll(); }
       else alert('Invalid credentials');
     }
 
@@ -662,7 +668,7 @@
     document.getElementById('btnFillDemo').addEventListener('click',()=>{
       document.getElementById('loginUser').value='admin'; document.getElementById('loginPass').value='admin123';
     });
-    document.getElementById('btnLogout').addEventListener('click',()=>{ currentUser=null; show('login'); });
+    document.getElementById('btnLogout').addEventListener('click',()=>{ sessionStorage.removeItem(AUTH_KEY); currentUser=null; show('login'); });
 
     // Nav
     document.querySelectorAll('#nav button').forEach(btn=>btn.addEventListener('click',()=>{
@@ -825,7 +831,14 @@
     }
 
     // Init
-    show('login'); refreshAll();
+    if (!isAuthed()) {
+      lockToLogin();
+      refreshAll();
+    } else {
+      refreshAll();
+    }
+    window.addEventListener('pageshow', ()=>{ if(!isAuthed()) lockToLogin(); });
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && !isAuthed()) lockToLogin(); });
   </script>
 </body>
 </html>
