@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -41,6 +40,8 @@
 /* autosuggest */
 .suggest-item{padding:.5rem .75rem;cursor:pointer}
 .suggest-item:hover{background:#f1f5f9}
+/* NEW: active row state for keyboard nav */
+.suggest-item.active{background:#e2e8f0}
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
@@ -151,9 +152,11 @@
 <label class="text-sm">Search Item</label>
 <input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posSearch" placeholder="Type part name, SKU or vehicle"/>
 <div class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto hidden" id="posSuggest"></div></div>
-<div>
+<!-- CHANGED: add relative wrapper & dropdown for SKU -->
+<div class="relative">
 <label class="text-sm">Add by SKU</label>
-<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posSku" placeholder="e.g. BRK-001"/>
+<input class="w-full rounded-xl border border-slate-300 px-3 py-2" id="posSku" placeholder="e.g. BRK-001" autocomplete="off"/>
+<div id="skuSuggest" class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto hidden"></div>
 </div>
 <button class="px-4 py-2 rounded-xl text-white" id="posAdd" style="background:#0ea5e9">Add</button>
 </div>
@@ -681,7 +684,8 @@ function lockToLogin(){ currentUser = null; show('login'); }
     // POS
     document.getElementById('posAdd').addEventListener('click',()=>{
       const sku = document.getElementById('posSku').value.trim();
-      if(sku) posAddBySku(sku); else {
+      if(sku) { posAddBySku(sku); document.getElementById('posSku').value=''; hideSkuSuggest(); }
+      else {
         // try search field first match
         const q = document.getElementById('posSearch').value.trim().toLowerCase();
         const hit = state.items.find(i=>[i.sku,i.name,i.make,i.model].filter(Boolean).some(v=>String(v).toLowerCase().includes(q)));
@@ -699,6 +703,7 @@ function lockToLogin(){ currentUser = null; show('login'); }
     document.getElementById('posDiscount').addEventListener('input',renderPos);
     document.getElementById('posVat').addEventListener('input',renderPos);
     document.getElementById('posClear').addEventListener('click',()=>{ pos.cart=[]; renderPos(); });
+
     document.getElementById('posPay').addEventListener('click',posProcessPayment);
     document.getElementById('posPrint').addEventListener('click',()=>window.print());
 
@@ -785,7 +790,7 @@ function lockToLogin(){ currentUser = null; show('login'); }
     });
 
     
-    // POS Search suggestions
+    // POS Search suggestions (existing)
     function buildPosSuggestions(q){
       const list = document.getElementById('posSuggest');
       if(!list) return;
@@ -827,6 +832,81 @@ function lockToLogin(){ currentUser = null; show('login'); }
         if(!posSearchEl.contains(e.target) && !list.contains(e.target)){
           list.classList.add('hidden');
         }
+      });
+    }
+
+    // NEW: Add-by-SKU dropdown with ranking + keyboard controls
+    const posSkuEl = document.getElementById('posSku');
+    const skuListEl = document.getElementById('skuSuggest');
+    let skuActiveIndex = -1;
+
+    function hideSkuSuggest(){ if(skuListEl){ skuListEl.classList.add('hidden'); skuListEl.innerHTML=''; skuActiveIndex=-1; }}
+
+    function buildSkuSuggestions(q){
+      if(!skuListEl) return;
+      const query = (q||'').trim().toLowerCase();
+      skuListEl.innerHTML='';
+      if(!query){ hideSkuSuggest(); return; }
+      const matches = state.items
+        .map(it => ({
+          it,
+          rank: it.sku.toLowerCase().startsWith(query) ? 0 :
+                it.sku.toLowerCase().includes(query) ? 1 :
+                (it.name||'').toLowerCase().includes(query) ? 2 : 3
+        }))
+        .filter(x => x.rank < 3)
+        .sort((a,b)=>a.rank-b.rank || a.it.sku.localeCompare(b.it.sku))
+        .slice(0,8)
+        .map(x=>x.it);
+      if(matches.length===0){ hideSkuSuggest(); return; }
+      matches.forEach((it,idx)=>{
+        const div=document.createElement('div');
+        div.className='suggest-item';
+        div.setAttribute('data-sku', it.sku);
+        div.innerHTML=`<b>${it.sku}</b> — ${it.name} <span class="text-xs text-slate-500">· ${fmt(it.sell||it.price||0)}</span>`;
+        div.addEventListener('mouseover',()=>activateSkuIndex(idx));
+        div.addEventListener('click',()=>chooseSku(it.sku,true));
+        skuListEl.appendChild(div);
+      });
+      skuActiveIndex=-1; skuListEl.classList.remove('hidden');
+    }
+    function activateSkuIndex(i){
+      const rows = Array.from(skuListEl.children);
+      rows.forEach(r => r.classList.remove('active'));
+      if(i>=0 && i<rows.length){ rows[i].classList.add('active'); skuActiveIndex=i; }
+    }
+    function chooseSku(sku, addImmediately=false){
+      if(!posSkuEl) return;
+      posSkuEl.value = sku;
+      hideSkuSuggest();
+      if(addImmediately){ posAddBySku(sku); posSkuEl.value=''; }
+      posSkuEl.focus();
+    }
+    if(posSkuEl){
+      posSkuEl.addEventListener('input', e => buildSkuSuggestions(e.target.value));
+      posSkuEl.addEventListener('keydown', e => {
+        const rows = Array.from(skuListEl.children);
+        if(e.key === 'ArrowDown'){
+          e.preventDefault(); activateSkuIndex(Math.min(rows.length-1, skuActiveIndex+1));
+        } else if(e.key === 'ArrowUp'){
+          e.preventDefault(); activateSkuIndex(Math.max(0, skuActiveIndex-1));
+        } else if(e.key === 'Enter'){
+          if(!skuListEl.classList.contains('hidden')){
+            e.preventDefault();
+            if(skuActiveIndex>=0 && rows[skuActiveIndex]){
+              chooseSku(rows[skuActiveIndex].getAttribute('data-sku'), true);
+            } else if(rows[0]){
+              chooseSku(rows[0].getAttribute('data-sku'), true);
+            } else if(posSkuEl.value.trim()){
+              posAddBySku(posSkuEl.value.trim()); posSkuEl.value='';
+            }
+          }
+        } else if(e.key === 'Escape'){
+          hideSkuSuggest();
+        }
+      });
+      document.addEventListener('click', (e)=>{
+        if(!posSkuEl.contains(e.target) && !skuListEl.contains(e.target)){ hideSkuSuggest(); }
       });
     }
 
